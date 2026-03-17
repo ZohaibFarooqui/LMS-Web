@@ -1,65 +1,132 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, FormEvent, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useAuthController } from "@/controllers/useAuthController";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Alert";
+import Image from "next/image";
+import { Lock, User } from "lucide-react";
+
+export default function LoginPage() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const { handleLogin, loading, error } = useAuthController();
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, router]);
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (username && password) {
+      handleLogin(username, password);
+    }
+  }
+
+  if (isLoading) return null;
+  if (user) return null;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen flex relative">
+      {/* Full-page background */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/background.png')" }}
+      />
+      <div className="fixed inset-0 bg-gray-900/75" />
+
+      {/* Left panel - branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col justify-center px-16 text-white">
+          <div className="flex items-center gap-4 mb-8">
+            <Image src="/YDC-HD.png" alt="LMS Logo" width={64} height={64} />
+            <h1 className="text-3xl font-bold">LMS Portal</h1>
+          </div>
+          <h2 className="text-4xl font-bold leading-tight mb-4">
+            Leave & Attendance<br />Management System
+          </h2>
+          <p className="text-lg text-gray-300 max-w-md">
+            Manage your leaves, track attendance, and stay updated with your
+            work schedule — all in one place.
           </p>
+          <div className="mt-12 grid grid-cols-3 gap-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center">
+              <p className="text-2xl font-bold">500+</p>
+              <p className="text-xs text-gray-300 mt-1">Employees</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center">
+              <p className="text-2xl font-bold">24/7</p>
+              <p className="text-xs text-gray-300 mt-1">Access</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center">
+              <p className="text-2xl font-bold">Real-time</p>
+              <p className="text-xs text-gray-300 mt-1">Tracking</p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* Right panel - login form */}
+      <div className="flex-1 flex items-center justify-center p-8 relative z-10">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+            <Image src="/YDC-HD.png" alt="LMS Logo" width={48} height={48} />
+            <h1 className="text-2xl font-bold text-white">LMS Portal</h1>
+          </div>
+
+          <div className="animate-fade-in bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+            <h2 className="text-2xl font-bold text-white">Welcome back</h2>
+            <p className="text-gray-300 mt-2 mb-8">Sign in to your account to continue</p>
+
+            {error && (
+              <div className="mb-6">
+                <Alert type="error" message={error} />
+              </div>
+            )}
+
+            <form onSubmit={onSubmit} className="space-y-5">
+              <div className="relative">
+                <User className="absolute left-3 top-9.5 h-5 w-5 text-gray-400" />
+                <Input
+                  label="Employee ID / Phone"
+                  labelClassName="text-gray-200"
+                  placeholder="Enter your ID or phone number"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
+
+              <div className="relative">
+                <Lock className="absolute left-3 top-9.5 h-5 w-5 text-gray-400" />
+                <Input
+                  label="Password"
+                  labelClassName="text-gray-200"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
+
+              <Button type="submit" loading={loading} className="w-full" size="lg">
+                Sign In
+              </Button>
+            </form>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
