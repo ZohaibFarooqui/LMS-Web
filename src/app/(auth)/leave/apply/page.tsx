@@ -43,10 +43,13 @@ export default function ApplyLeavePage() {
 
   if (loading) return <Spinner />;
 
-  const leaveOptions = leaveBalances.map((lb) => ({
-    value: lb.leave_type,
-    label: `${lb.leave_desc || `Type ${lb.leave_type}`} (Balance: ${lb.balance})`,
-  }));
+  // Only show leave types with positive balance — negative means 0 available
+  const leaveOptions = leaveBalances
+    .filter((lb) => lb.balance > 0)
+    .map((lb) => ({
+      value: lb.leave_type,
+      label: `${lb.leave_desc || `Type ${lb.leave_type}`} (Balance: ${Math.max(0, lb.balance)})`,
+    }));
 
   return (
     <div className="animate-fade-in">

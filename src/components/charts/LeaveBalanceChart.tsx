@@ -10,11 +10,12 @@ interface LeaveBalanceChartProps {
 }
 
 export function LeaveBalanceChart({ balances }: LeaveBalanceChartProps) {
+  // Only show leaves with positive balance — negative means 0 available
   const data = balances
     .filter((b) => b.balance > 0)
     .map((b) => ({
       name: b.leave_desc || `Type ${b.leave_type}`,
-      value: b.balance,
+      value: Math.max(0, b.balance),
     }));
 
   if (data.length === 0) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAttendanceController } from "@/controllers/useAttendanceController";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
@@ -8,11 +9,37 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDate } from "@/lib/utils";
-import { Clock, Search, RefreshCw, Timer, AlertTriangle } from "lucide-react";
+import { printTimesheetWindow } from "@/lib/printTimesheet";
+import { Clock, Search, RefreshCw, Timer, AlertTriangle, Printer, Download } from "lucide-react";
 
 export default function AttendancePage() {
+  const { user } = useAuth();
   const { records, summary, loading, dateRange, setDateRange, refresh } =
     useAttendanceController();
+
+  function downloadCSV() {
+    const headers = ["Date", "Day", "In Time", "Out Time", "Working Hrs", "Late", "OT", "Status"];
+    const rows = records.map((r) => [
+      r.roster_date, r.day_name || "", r.in_time || "", r.out_time || "",
+      `${r.w_hrs ?? 0}h ${r.w_mnt ?? 0}m`,
+      `${r.late_hrs ?? 0}h ${r.late_mnt ?? 0}m`,
+      `${r.ot_hrs ?? 0}h ${r.ot_mnt ?? 0}m`,
+      r.status || "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `my_attendance_${dateRange.from}_${dateRange.to}.csv`;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 150);
+  }
 
   return (
     <div className="animate-fade-in">
@@ -20,10 +47,36 @@ export default function AttendancePage() {
         title="Attendance"
         subtitle="View your attendance records"
         actions={
-          <Button variant="secondary" size="sm" onClick={refresh}>
-            <RefreshCw className="h-4 w-4 mr-1.5" />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={refresh}>
+              <RefreshCw className="h-4 w-4 mr-1.5" />
+              Refresh
+            </Button>
+            <Button variant="secondary" size="sm" onClick={downloadCSV} disabled={records.length === 0}>
+              <Download className="h-4 w-4 mr-1.5" />
+              CSV
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={records.length === 0}
+              onClick={() =>
+                printTimesheetWindow(
+                  {
+                    emp_name: user?.emp_name || "",
+                    card_no: user?.card_no || "",
+                  },
+                  records,
+                  summary,
+                  dateRange.from,
+                  dateRange.to,
+                )
+              }
+            >
+              <Printer className="h-4 w-4 mr-1.5" />
+              Print / PDF
+            </Button>
+          </div>
         }
       />
 

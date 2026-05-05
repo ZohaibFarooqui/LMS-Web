@@ -39,6 +39,29 @@ export function useLeaveController() {
 
   async function submitLeave(data: Omit<LeaveApplyRequest, "compc" | "brnch" | "emp_name">) {
     if (!user) return;
+
+    // Check balance before submitting
+    const selectedBalance = leaveBalances.find(
+      (lb) => lb.leave_type === data.leave_type_id
+    );
+    if (selectedBalance && selectedBalance.balance <= 0) {
+      setError("You have no remaining balance for this leave type.");
+      return;
+    }
+
+    // Check requested days vs available balance
+    if (selectedBalance && data.from_date && data.to_date) {
+      const d1 = new Date(data.from_date);
+      const d2 = new Date(data.to_date);
+      const requestedDays = Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      if (requestedDays > selectedBalance.balance) {
+        setError(
+          `Insufficient balance. You have ${selectedBalance.balance} day(s) but requested ${requestedDays} day(s).`
+        );
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError(null);
     setSuccess(null);

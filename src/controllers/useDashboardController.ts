@@ -5,11 +5,11 @@ import { useAuth } from "@/context/AuthContext";
 import { fetchDashboard } from "@/services/authService";
 import { fetchLeaveBalances } from "@/services/authService";
 import { fetchAttendanceSummary } from "@/services/attendanceService";
-import { fetchHRDashboard } from "@/services/hrmsService";
+import { fetchHRDashboard, fetchHRAnalytics } from "@/services/hrmsService";
 import { DashboardData } from "@/models/employee";
 import { LeaveBalance } from "@/models/leave";
 import { AttendanceSummary } from "@/models/attendance";
-import { HRDashboardStats } from "@/models/hrms";
+import { HRDashboardStats, HRAnalytics } from "@/models/hrms";
 
 export function useDashboardController() {
   const { user } = useAuth();
@@ -17,6 +17,7 @@ export function useDashboardController() {
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
   const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary | null>(null);
   const [hrStats, setHrStats] = useState<HRDashboardStats | null>(null);
+  const [hrAnalytics, setHrAnalytics] = useState<HRAnalytics | null>(null);
   const [hrView, setHrView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +54,12 @@ export function useDashboardController() {
       // Load HR dashboard if user is HR admin
       if (user.hr_admin) {
         try {
-          const stats = await fetchHRDashboard(user.card_no);
+          const [stats, analytics] = await Promise.all([
+            fetchHRDashboard(user.card_no),
+            fetchHRAnalytics(user.card_no),
+          ]);
           setHrStats(stats);
+          setHrAnalytics(analytics);
         } catch {
           // HR dashboard might not be available
         }
@@ -75,6 +80,7 @@ export function useDashboardController() {
     leaveBalances,
     attendanceSummary,
     hrStats,
+    hrAnalytics,
     hrView,
     setHrView,
     loading,

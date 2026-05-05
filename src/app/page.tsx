@@ -10,12 +10,30 @@ import { Alert } from "@/components/ui/Alert";
 import Image from "next/image";
 import { Lock, User } from "lucide-react";
 
+const REMEMBER_KEY = "lms_remember";
+
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const { handleLogin, loading, error } = useAuthController();
   const { user, isLoading } = useAuth();
   const router = useRouter();
+
+  // Restore saved credentials on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBER_KEY);
+      if (saved) {
+        const { username: u, password: p } = JSON.parse(saved);
+        if (u) setUsername(u);
+        if (p) setPassword(p);
+        setRememberMe(true);
+      }
+    } catch {
+      // ignore corrupt data
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -26,6 +44,12 @@ export default function LoginPage() {
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (username && password) {
+      // Save or clear credentials based on remember me
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_KEY, JSON.stringify({ username, password }));
+      } else {
+        localStorage.removeItem(REMEMBER_KEY);
+      }
       handleLogin(username, password);
     }
   }
@@ -119,6 +143,21 @@ export default function LoginPage() {
                   required
                 />
               </div>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => {
+                    setRememberMe(e.target.checked);
+                    if (!e.target.checked) {
+                      localStorage.removeItem(REMEMBER_KEY);
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-white/30 bg-white/10 text-indigo-500 focus:ring-indigo-500"
+                />
+                <span className="text-sm text-gray-300">Remember me</span>
+              </label>
 
               <Button type="submit" loading={loading} className="w-full" size="lg">
                 Sign In

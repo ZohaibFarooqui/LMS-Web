@@ -30,7 +30,14 @@ export function useAttendanceController() {
         fetchAttendanceRange(user.card_no, dateRange.from, dateRange.to),
         fetchDashboard(user.card_no),
       ]);
-      setRecords(reportRes.items || []);
+      // Derive day_name from roster_date when backend doesn't supply it
+      const items = (reportRes.items || []).map((r) => ({
+        ...r,
+        day_name: r.day_name || (r.roster_date
+          ? new Date(r.roster_date).toLocaleDateString("en-US", { weekday: "long" })
+          : undefined),
+      }));
+      setRecords(items);
 
       if (dashData.card_no) {
         try {
