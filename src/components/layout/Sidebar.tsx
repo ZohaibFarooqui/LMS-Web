@@ -14,6 +14,7 @@ import {
   User,
   Users,
   UserCog,
+  Briefcase,
   LogOut,
   ChevronLeft,
   Menu,
@@ -29,8 +30,8 @@ const navItems = [
 ];
 
 const hrNavItems = [
-  // { href: "/hr", label: "HR Admin", icon: Users },
   { href: "/hrms", label: "HRMS", icon: UserCog },
+  { href: "/recruitment", label: "Recruitment", icon: Briefcase },
 ];
 
 export function Sidebar() {
