@@ -201,11 +201,13 @@ function StatusBadge({ status }: { status: string }) {
 // MAIN HR DASHBOARD
 // ══════════════════════════════════════════════════════════
 export function HRDashboard({
-  stats, analytics, onSwitch,
+  stats, analytics, onSwitch, selectedDate, onDateChange,
 }: {
   stats: HRDashboardStats;
   analytics: HRAnalytics | null;
   onSwitch: () => void;
+  selectedDate?: string;
+  onDateChange?: (date: string) => void;
 }) {
   const kpis    = analytics?.kpis;
   const daily14 = (analytics?.daily_attendance ?? []).slice(-14);
@@ -246,8 +248,20 @@ export function HRDashboard({
   const deptTotal        = stats.department_breakdown?.reduce((s, d) => s + d.total, 0) ?? 0;
   const deptAbsentTotal  = deptTotal - deptPresentTotal;
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-US", { weekday: undefined, year: "numeric", month: "short", day: "numeric" });
+  const displayDate = selectedDate
+    ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+    : new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+
+  const kpiCards = [
+    { label: "Total Employees",     sub: "All Employees",  value: stats.total_employees,                                icon: Users,    bg: "bg-indigo-50",  ic: "text-indigo-500",  today: stats.total_employees,  yest: 0, inv: false },
+    { label: "Present Today",       sub: `${presentPct.toFixed(1)}% of total`, value: stats.present_today,             icon: UserCheck,bg: "bg-emerald-50", ic: "text-emerald-500", today: stats.present_today,    yest: stats.yesterday_present ?? 0, inv: false },
+    { label: "Absent Today",        sub: `${absentPct.toFixed(1)}% of total`,  value: stats.absent_today,              icon: UserX,    bg: "bg-red-50",     ic: "text-red-500",     today: stats.absent_today,     yest: stats.yesterday_absent ?? 0, inv: true },
+    { label: "On Leave",            sub: `${onLeavePct.toFixed(1)}% of total`, value: stats.on_leave_today,            icon: CalendarDays, bg: "bg-purple-50", ic: "text-purple-500", today: stats.on_leave_today,  yest: stats.yesterday_on_leave ?? 0, inv: false },
+    { label: "Late Logins",         sub: "Today",          value: kpis?.late_logins ?? stats.late_today,               icon: Clock,    bg: "bg-amber-50",   ic: "text-amber-500",   today: kpis?.late_logins ?? 0, yest: 0, inv: true },
+    { label: "On-Time Logins",      sub: "Today",          value: kpis?.early_logins ?? (stats.present_today - stats.late_today), icon: Zap, bg: "bg-teal-50", ic: "text-teal-500", today: kpis?.early_logins ?? 0, yest: stats.yesterday_present ?? 0, inv: false },
+    { label: "Overtime Hours",      sub: "Today",          value: `${kpis?.overtime_hours ?? 0}h`,                     icon: Timer,    bg: "bg-violet-50",  ic: "text-violet-500",  today: kpis?.overtime_hours ?? 0, yest: 0, inv: false },
+    { label: "New Joiners",         sub: "Last 30 days",   value: stats.recent_hires,                                  icon: UserPlus, bg: "bg-cyan-50",    ic: "text-cyan-500",    today: stats.recent_hires,     yest: 0, inv: false },
+  ];
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -256,13 +270,21 @@ export function HRDashboard({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">HR Dashboard</h1>
-          <p className="text-xs text-gray-400">Organization-wide overview for today</p>
+          <p className="text-xs text-gray-400">Organization-wide overview</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
-            <CalendarDays className="h-3.5 w-3.5" />
-            Today, {dateStr}
-          </div>
+          {/* Date picker */}
+          <label className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-100 transition-colors">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+            <span>{displayDate}</span>
+            <input
+              type="date"
+              value={selectedDate ?? new Date().toISOString().split("T")[0]}
+              max={new Date().toISOString().split("T")[0]}
+              onChange={(e) => onDateChange?.(e.target.value)}
+              className="absolute opacity-0 w-0 h-0 pointer-events-none"
+            />
+          </label>
           <button
             onClick={onSwitch}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors text-xs font-medium"
@@ -273,125 +295,57 @@ export function HRDashboard({
         </div>
       </div>
 
-      {/* ══ ROW 1: Health Score + 4 main KPIs ════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      {/* ══ KPI SECTION: Health Score spans 2 rows + 8 equal cards ══ */}
+      <div className="grid grid-cols-5 gap-4" style={{ gridTemplateRows: "auto auto" }}>
 
-        {/* Health Score card */}
-        <Card className="lg:col-span-1">
-          <CardContent className="pt-3 pb-2 px-3">
+        {/* Health Score — spans both rows */}
+        <Card className="row-span-2">
+          <CardContent className="h-full flex flex-col justify-center pt-3 pb-4 px-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs font-semibold text-gray-700">Attendance Health Score</p>
               <Info className="h-3.5 w-3.5 text-gray-400" />
             </div>
             <HalfGauge value={presentPct} color={healthColor} centerLabel={String(healthScore)} subLabel={healthLabel} />
-            <div className="text-center mt-1 space-y-0.5">
-              {stats.yesterday_present !== undefined && (
+            <div className="text-center mt-2 space-y-1">
+              {stats.yesterday_present !== undefined && stats.yesterday_present > 0 && (
                 <Delta today={stats.present_today} yesterday={stats.yesterday_present} />
               )}
-              <p className="text-[10px] text-gray-400 leading-tight">
-                {healthScore >= 75 ? "Keep it up! Attendance is better than yesterday." : "Action needed to improve attendance."}
+              <p className="text-[10px] text-gray-400 leading-tight px-1">
+                {healthScore >= 75 ? "Great! Attendance is on track." : "Action needed to improve attendance."}
               </p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Total Employees */}
-        <Card>
-          <CardContent className="py-4 px-4">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                <Users className="h-5 w-5 text-indigo-500" />
+            {/* Mini legend */}
+            <div className="mt-4 space-y-1.5 text-[10px]">
+              <div className="flex justify-between text-gray-500">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400 inline-block"/>Present</span>
+                <span className="font-bold text-gray-700">{stats.present_today}</span>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs text-gray-500">Total Employees</p>
-                <p className="text-2xl font-extrabold text-gray-900 leading-tight">{stats.total_employees}</p>
-                <p className="text-[10px] text-gray-400">All Employees</p>
-                <p className="text-[10px] text-gray-300">--</p>
+              <div className="flex justify-between text-gray-500">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-400 inline-block"/>Absent</span>
+                <span className="font-bold text-gray-700">{stats.absent_today}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-400 inline-block"/>On Leave</span>
+                <span className="font-bold text-gray-700">{stats.on_leave_today}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Present Today */}
-        <Card>
-          <CardContent className="py-4 px-4">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                <UserCheck className="h-5 w-5 text-emerald-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-gray-500">Present Today</p>
-                <p className="text-2xl font-extrabold text-gray-900 leading-tight">{stats.present_today}</p>
-                <p className="text-[10px] text-gray-400">{presentPct.toFixed(2)}% of total</p>
-                {stats.yesterday_present !== undefined && (
-                  <Delta today={stats.present_today} yesterday={stats.yesterday_present} />
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Absent Today */}
-        <Card>
-          <CardContent className="py-4 px-4">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-                <UserX className="h-5 w-5 text-red-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-gray-500">Absent Today</p>
-                <p className="text-2xl font-extrabold text-gray-900 leading-tight">{stats.absent_today}</p>
-                <p className="text-[10px] text-gray-400">{absentPct.toFixed(2)}% of total</p>
-                {stats.yesterday_absent !== undefined && (
-                  <Delta today={stats.absent_today} yesterday={stats.yesterday_absent} invert />
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* On Leave */}
-        <Card>
-          <CardContent className="py-4 px-4">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                <CalendarDays className="h-5 w-5 text-purple-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-gray-500">On Leave</p>
-                <p className="text-2xl font-extrabold text-gray-900 leading-tight">{stats.on_leave_today}</p>
-                <p className="text-[10px] text-gray-400">{onLeavePct.toFixed(2)}% of total</p>
-                {stats.yesterday_on_leave !== undefined && (
-                  <Delta today={stats.on_leave_today} yesterday={stats.yesterday_on_leave} />
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ══ ROW 2: Secondary KPIs ════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Late Logins", sub: "Today", value: kpis?.late_logins ?? stats.late_today, icon: Clock, bg: "bg-amber-50", ic: "text-amber-500",
-            today: kpis?.late_logins ?? 0, yest: stats.yesterday_present ? Math.round(stats.yesterday_present * 0.05) : 0, inv: true },
-          { label: "On-Time Logins", sub: "Today", value: kpis?.early_logins ?? (stats.present_today - stats.late_today), icon: Zap, bg: "bg-emerald-50", ic: "text-emerald-500",
-            today: kpis?.early_logins ?? 0, yest: stats.yesterday_present, inv: false },
-          { label: "Overtime Hours", sub: "Today", value: `${kpis?.overtime_hours ?? 0}h`, icon: Timer, bg: "bg-purple-50", ic: "text-purple-500",
-            today: kpis?.overtime_hours ?? 0, yest: (kpis?.overtime_hours ?? 0) * 0.96, inv: false },
-          { label: "New Joiners (30 days)", sub: "New Employees", value: stats.recent_hires, icon: UserPlus, bg: "bg-cyan-50", ic: "text-cyan-500",
-            today: stats.recent_hires, yest: stats.recent_hires > 0 ? stats.recent_hires - 2 : 0, inv: false },
-        ].map(({ label, sub, value, icon: Icon, bg, ic, today, yest, inv }) => (
+        {/* 8 KPI cards — 4 per row, filling remaining 4 cols × 2 rows */}
+        {kpiCards.map(({ label, sub, value, icon: Icon, bg, ic, today, yest, inv }) => (
           <Card key={label}>
-            <CardContent className="flex items-center gap-3 py-4 px-4">
-              <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
-                <Icon className={`h-5 w-5 ${ic}`} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-lg font-extrabold text-gray-900 leading-tight">{value}</p>
-                <p className="text-xs text-gray-500">{label}</p>
-                <p className="text-[10px] text-gray-400">{sub}</p>
-                {(yest ?? 0) > 0 && <Delta today={Number(today)} yesterday={Number(yest ?? 0)} invert={inv} />}
+            <CardContent className="py-4 px-4 h-full">
+              <div className="flex items-start gap-3 h-full">
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                  <Icon className={`h-5 w-5 ${ic}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-extrabold text-gray-900 leading-tight">{value}</p>
+                  <p className="text-xs text-gray-500 leading-tight">{label}</p>
+                  <p className="text-[10px] text-gray-400">{sub}</p>
+                  {yest > 0 && <Delta today={Number(today)} yesterday={Number(yest)} invert={inv} />}
+                </div>
               </div>
             </CardContent>
           </Card>

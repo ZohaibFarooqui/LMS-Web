@@ -34,6 +34,8 @@ export default function DashboardPage() {
     setHrView,
     loading,
     error,
+    selectedDate,
+    setSelectedDate,
   } = useDashboardController();
 
   if (loading) return <Spinner />;
@@ -56,6 +58,8 @@ export default function DashboardPage() {
         stats={hrStats}
         analytics={hrAnalytics}
         onSwitch={() => setHrView(false)}
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
       />
     );
   }

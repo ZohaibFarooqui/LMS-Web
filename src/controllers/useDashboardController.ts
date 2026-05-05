@@ -21,11 +21,15 @@ export function useDashboardController() {
   const [hrView, setHrView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
 
-  const loadDashboard = useCallback(async () => {
+  const loadDashboard = useCallback(async (date?: string) => {
     if (!user) return;
     setLoading(true);
     setError(null);
+    const qdate = date ?? selectedDate;
     try {
       const [dashData, leaveData] = await Promise.all([
         fetchDashboard(user.card_no),
@@ -55,8 +59,8 @@ export function useDashboardController() {
       if (user.hr_admin) {
         try {
           const [stats, analytics] = await Promise.all([
-            fetchHRDashboard(user.card_no),
-            fetchHRAnalytics(user.card_no),
+            fetchHRDashboard(user.card_no, qdate),
+            fetchHRAnalytics(user.card_no, qdate),
           ]);
           setHrStats(stats);
           setHrAnalytics(analytics);
@@ -69,7 +73,12 @@ export function useDashboardController() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, selectedDate]);
+
+  const handleSetSelectedDate = useCallback((date: string) => {
+    setSelectedDate(date);
+    loadDashboard(date);
+  }, [loadDashboard]);
 
   useEffect(() => {
     loadDashboard();
@@ -85,6 +94,8 @@ export function useDashboardController() {
     setHrView,
     loading,
     error,
+    selectedDate,
+    setSelectedDate: handleSetSelectedDate,
     refresh: loadDashboard,
   };
 }

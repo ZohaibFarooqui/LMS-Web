@@ -50,15 +50,16 @@ export async function listHRMSEmployees(
 }
 
 export async function fetchHRDashboard(
-  adminCardNo: string
+  adminCardNo: string,
+  date?: string
 ): Promise<HRDashboardStats> {
-  return apiRequest<HRDashboardStats>(
-    `/hrms/dashboard?admin_card_no=${adminCardNo}`
-  );
+  const params = new URLSearchParams({ admin_card_no: adminCardNo });
+  if (date) params.set("date", date);
+  return apiRequest<HRDashboardStats>(`/hrms/dashboard?${params.toString()}`);
 }
 
-export async function fetchHRAnalytics(adminCardNo: string): Promise<HRAnalytics> {
-  return apiRequest<HRAnalytics>(
-    `/hrms/dashboard/analytics?admin_card_no=${adminCardNo}`
-  );
+export async function fetchHRAnalytics(adminCardNo: string, date?: string): Promise<HRAnalytics> {
+  const params = new URLSearchParams({ admin_card_no: adminCardNo });
+  if (date) params.set("date", date);
+  return apiRequest<HRAnalytics>(`/hrms/dashboard/analytics?${params.toString()}`);
 }
